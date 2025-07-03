@@ -9,12 +9,26 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// CreateUser is a method to create a new user in the database.
+// CreateUser creates a new user in the database.
 func (i impl) CreateUser(ctx context.Context, user model.User) error {
-	user.ID = primitive.NewObjectID()
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
+	// Set timestamps if not provided
+	now := time.Now()
+	if user.CreatedAt.IsZero() {
+		user.CreatedAt = now
+	}
+	if user.UpdatedAt.IsZero() {
+		user.UpdatedAt = now
+	}
+
+	// Generate ID if not provided
+	if user.ID.IsZero() {
+		user.ID = primitive.NewObjectID()
+	}
 
 	_, err := i.collection.InsertOne(ctx, user)
-	return pkgerrors.WithStack(err)
+	if err != nil {
+		return pkgerrors.WithStack(err)
+	}
+
+	return nil
 }

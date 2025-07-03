@@ -18,7 +18,7 @@ func TestCreateUser(t *testing.T) {
 	tests := []struct {
 		name          string
 		user          model.User
-		mockInsert    func(mt *mtest.T)
+		mockResponses func(mt *mtest.T)
 		expectError   bool
 		errorContains string
 	}{
@@ -29,7 +29,8 @@ func TestCreateUser(t *testing.T) {
 				Email:    "john@example.com",
 				Password: "hashedpassword123",
 			},
-			mockInsert: func(mt *mtest.T) {
+			mockResponses: func(mt *mtest.T) {
+				// Mock InsertOne success
 				mt.AddMockResponses(mtest.CreateSuccessResponse())
 			},
 			expectError: false,
@@ -42,7 +43,8 @@ func TestCreateUser(t *testing.T) {
 				Password: "password456",
 				Image:    "https://example.com/avatar.jpg",
 			},
-			mockInsert: func(mt *mtest.T) {
+			mockResponses: func(mt *mtest.T) {
+				// Mock InsertOne success
 				mt.AddMockResponses(mtest.CreateSuccessResponse())
 			},
 			expectError: false,
@@ -54,7 +56,8 @@ func TestCreateUser(t *testing.T) {
 				Email:    "duplicate@example.com",
 				Password: "password789",
 			},
-			mockInsert: func(mt *mtest.T) {
+			mockResponses: func(mt *mtest.T) {
+				// Mock InsertOne with duplicate key error
 				mt.AddMockResponses(mtest.CreateWriteErrorsResponse(mtest.WriteError{
 					Index:   0,
 					Code:    11000,
@@ -71,7 +74,8 @@ func TestCreateUser(t *testing.T) {
 				Email:    "failed@example.com",
 				Password: "password123",
 			},
-			mockInsert: func(mt *mtest.T) {
+			mockResponses: func(mt *mtest.T) {
+				// Mock InsertOne with write exception
 				mt.AddMockResponses(mtest.CreateCommandErrorResponse(mtest.CommandError{
 					Code:    1,
 					Message: "write exception",
@@ -87,7 +91,8 @@ func TestCreateUser(t *testing.T) {
 				Email:    "empty@example.com",
 				Password: "password123",
 			},
-			mockInsert: func(mt *mtest.T) {
+			mockResponses: func(mt *mtest.T) {
+				// Mock InsertOne success
 				mt.AddMockResponses(mtest.CreateSuccessResponse())
 			},
 			expectError: false,
@@ -99,7 +104,8 @@ func TestCreateUser(t *testing.T) {
 				Email:    "",
 				Password: "password123",
 			},
-			mockInsert: func(mt *mtest.T) {
+			mockResponses: func(mt *mtest.T) {
+				// Mock InsertOne success
 				mt.AddMockResponses(mtest.CreateSuccessResponse())
 			},
 			expectError: false,
@@ -109,7 +115,6 @@ func TestCreateUser(t *testing.T) {
 	for _, tt := range tests {
 		mt.Run(tt.name, func(mt *mtest.T) {
 			// Setup the repository using the actual New() function with mock database
-			// mt.DB provides a mock database that satisfies the interface
 			repo := user.New(mt.DB)
 
 			// Keep original user state for comparison
@@ -118,20 +123,20 @@ func TestCreateUser(t *testing.T) {
 			originalCreatedAt := tt.user.CreatedAt
 			originalUpdatedAt := tt.user.UpdatedAt
 
-			// Mock the database response
-			tt.mockInsert(mt)
+			// Mock the database responses
+			tt.mockResponses(mt)
 
-			// Call the CreateUser method - this uses the REAL implementation
+			// Call the CreateUser method
 			err := repo.CreateUser(context.Background(), tt.user)
 
 			// Validate the error
 			if tt.expectError {
-				assert.Error(t, err)
+				assert.Error(t, err, "Expected error but got none for test: %s", tt.name)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.Contains(t, err.Error(), tt.errorContains, "Error message should contain expected text for test: %s", tt.name)
 				}
 			} else {
-				assert.NoError(t, err)
+				assert.NoError(t, err, "Expected no error but got: %v for test: %s", err, tt.name)
 			}
 
 			// Validate that the original user object is not modified
@@ -187,8 +192,7 @@ func TestCreateUserContextCancellation(t *testing.T) {
 
 	for _, tt := range tests {
 		mt.Run(tt.name, func(mt *mtest.T) {
-			// Setup the repository using the actual New() function
-			// mt.DB provides a mock database that satisfies the interface
+			// Setup the repository
 			repo := user.New(mt.DB)
 
 			// Setup context
