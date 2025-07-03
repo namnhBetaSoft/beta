@@ -30,6 +30,33 @@ docker-down:
 		docker-compose down; \
 	fi
 
+# Database-only operations
+db-up:
+	@echo "Starting database only..."
+	@if docker compose up mongo_bp -d 2>/dev/null; then \
+		echo "Database started successfully"; \
+	else \
+		echo "Falling back to Docker Compose V1"; \
+		docker-compose up mongo_bp -d; \
+	fi
+
+db-down:
+	@echo "Stopping database only..."
+	@if docker compose stop mongo_bp 2>/dev/null; then \
+		echo "Database stopped successfully"; \
+	else \
+		echo "Falling back to Docker Compose V1"; \
+		docker-compose stop mongo_bp; \
+	fi
+
+db-status:
+	@echo "Database status:"
+	@docker ps --filter "name=mongo_bp"
+
+db-logs:
+	@echo "Database logs:"
+	@docker logs mongo_bp -f
+
 # Test the application
 test:
 	@echo "Testing..."
@@ -61,4 +88,9 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+# Seed the database with initial data
+seed:
+	@echo "Seeding database..."
+	@cd backend && go run cmd/seed/main.go
+
+.PHONY: all build run test clean watch docker-run docker-down itest db-up db-down db-status db-logs seed

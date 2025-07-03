@@ -1,17 +1,26 @@
 package repository
 
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+	"beta/internal/repository/user"
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 type Registry interface {
-	// Add methods that will be implemented by the repository
+	User() user.Repository
 }
 
 func New(
 	db *mongo.Database,
 ) Registry {
-	return &impl{}
+	return &impl{
+		user: user.New(db),
+	}
 }
 
 type impl struct {
-	// Add fields that will be used in the repository implementation
+	user user.Repository
+}
+
+func (r *impl) User() user.Repository {
+	return r.user
 }
