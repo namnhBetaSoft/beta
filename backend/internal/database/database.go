@@ -21,9 +21,9 @@ type service struct {
 }
 
 var (
-	host = os.Getenv("DB_HOST")
-	port = os.Getenv("DB_PORT")
-	//database = os.Getenv("DB_DATABASE")
+	host     = os.Getenv("DB_HOST")
+	port     = os.Getenv("DB_PORT")
+	database = os.Getenv("DB_DATABASE")
 )
 
 func New() Service {
